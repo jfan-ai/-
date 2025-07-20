@@ -125,48 +125,74 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     public Page<CategoryVO> findPage(CategoryVO categoryVO, int pageNum, int pageSize) {
         try {
             //构建分页对象
-            Page<Category> CategoryPage = new Page<>(pageNum,pageSize);
+            Page<Category> categoryPage = new Page<>(pageNum,pageSize);
             //构建查询条件
             QueryWrapper<Category> queryWrapper = queryWrapper(categoryVO);
-            //执行分页查询
-            Page<CategoryVO> categoryVOPage = BeanConv
-                .toPage(page(CategoryPage, queryWrapper), CategoryVO.class);
-            if (!EmptyUtil.isNullOrEmpty(categoryVOPage.getRecords())){
-                //构建分类编号Set
-                Set<String> categoryNoSet = categoryVOPage.getRecords().stream().map(CategoryVO::getCategoryNo).collect(Collectors.toSet());
-                //查询分类筛选项
-                List<CategoryConditionVO> categoryConditionVOs = categoryConditionService.findListInCategoryNo(categoryNoSet);
-                //查询分类保障项
-                List<CategorySafeguardVO> categorySafeguardVOs = categorySafeguardService.findListInCategoryNo(categoryNoSet);
-                //查询分类系数项
-                List<CategoryCoefficentVO> categoryCoefficentVOs = categoryCoefficentService.findListInCategoryNo(categoryNoSet);
-                //组合子属性
-                categoryVOPage.getRecords().forEach(n->{
-                    List<CategoryConditionVO> categoryConditionVOsHandler = Lists.newArrayList();
-                    List<CategorySafeguardVO> categorySafeguardVOsHandler = Lists.newArrayList();
-                    List<CategoryCoefficentVO> categoryCoefficentVOsHandler = Lists.newArrayList();
-                    categoryConditionVOs.forEach(y->{
-                        if (n.getCategoryNo().equals(y.getCategoryNo())) {
-                            categoryConditionVOsHandler.add(y);
-                        }
-                    });
-                    categorySafeguardVOs.forEach(z->{
-                        if (n.getCategoryNo().equals(z.getCategoryNo())) {
-                            categorySafeguardVOsHandler.add(z);
-                        }
-                    });
-                    categoryCoefficentVOs.forEach(e->{
-                        if (n.getCategoryNo().equals(e.getCategoryNo())) {
-                            categoryCoefficentVOsHandler.add(e);
-                        }
-                    });
-                    n.setCategoryConditionVOs(categoryConditionVOsHandler);
-                    n.setCategorySafeguardVOs(categorySafeguardVOsHandler);
-                    n.setCategoryCoefficentVOs(categoryCoefficentVOsHandler);
+            //查询分页基本列表数据
+            Page<Category> page = page(categoryPage, queryWrapper);
+            if (EmptyUtil.isNullOrEmpty(page.getRecords())) {
+                return null;
+            }
+            //转换为要返回的VO列表数据
+            Page<CategoryVO> resultPage = BeanConv.toPage(page, CategoryVO.class);
+
+            //获取分类列表的每个分类编号放置到一个集合set中
+            Set<String> categoryNoSet = page.getRecords().stream().map(Category::getCategoryNo).collect(Collectors.toSet());
+
+        /*处理每个分类的保障项:
+        ①根据查询到的分类编号查询出分类下的保障项列表；
+        ②对保障项列表根据分类分组；
+        ③遍历分类列表设置对应的保障项列表
+         */
+            List<CategorySafeguardVO> categorySafeguardVOs = categorySafeguardService.findListInCategoryNo(categoryNoSet);
+            Map<String, List<CategorySafeguardVO>> categorySafeguardVOMap = categorySafeguardVOs.stream().
+                    collect(Collectors.groupingBy(CategorySafeguardVO::getCategoryNo));
+            if (!EmptyUtil.isNullOrEmpty(resultPage.getRecords())) {
+                resultPage.getRecords().forEach(tmpCategoryVO -> {
+                    if (categorySafeguardVOMap.containsKey(tmpCategoryVO.getCategoryNo())) {
+                        tmpCategoryVO.setCategorySafeguardVOs(categorySafeguardVOMap.get(tmpCategoryVO.getCategoryNo()));
+                    } else {
+                        tmpCategoryVO.setCategorySafeguardVOs(List.of());
+                    }
                 });
             }
+        /*处理每个分类的系数项:
+        ①根据查询到的分类编号查询出分类下的系数项列表；
+        ②对系数项列表根据分类分组；
+        ③遍历分类列表设置对应的系数项列表
+         */
+            List<CategoryCoefficentVO> categoryCoefficentVOs = categoryCoefficentService.findListInCategoryNo(categoryNoSet);
+            Map<String, List<CategoryCoefficentVO>> categoryCoefficentVOMap = categoryCoefficentVOs.stream().
+                    collect(Collectors.groupingBy(CategoryCoefficentVO::getCategoryNo));
+            if (!EmptyUtil.isNullOrEmpty(resultPage.getRecords())) {
+                resultPage.getRecords().forEach(tmpCategoryVO -> {
+                    if (categoryCoefficentVOMap.containsKey(tmpCategoryVO.getCategoryNo())) {
+                        tmpCategoryVO.setCategoryCoefficentVOs(categoryCoefficentVOMap.get(tmpCategoryVO.getCategoryNo()));
+                    } else {
+                        tmpCategoryVO.setCategoryCoefficentVOs(List.of());
+                    }
+                });
+            }
+        /*处理每个分类的筛选项:
+        ①根据查询到的分类编号查询出分类下的筛选项列表；
+        ②对筛选项列表根据分类分组；
+        ③遍历分类列表设置对应的筛选项列表
+         */
+            List<CategoryConditionVO> categoryConditionVOs = categoryConditionService.findListInCategoryNo(categoryNoSet);
+            Map<String, List<CategoryConditionVO>> categoryConditionVOMap = categoryConditionVOs.stream().
+                    collect(Collectors.groupingBy(CategoryConditionVO::getCategoryNo));
+            if (!EmptyUtil.isNullOrEmpty(resultPage.getRecords())) {
+                resultPage.getRecords().forEach(tmpCategoryVO -> {
+                    if (categoryConditionVOMap.containsKey(tmpCategoryVO.getCategoryNo())) {
+                        tmpCategoryVO.setCategoryConditionVOs(categoryConditionVOMap.get(tmpCategoryVO.getCategoryNo()));
+                    } else {
+                        tmpCategoryVO.setCategoryConditionVOs(List.of());
+                    }
+                });
+            }
+
             //返回结果
-            return categoryVOPage;
+            return resultPage;
         }catch (Exception e){
             log.error("保险分类分页查询异常：{}", ExceptionsUtil.getStackTraceAsString(e));
             throw new ProjectException(CategoryEnum.PAGE_FAIL);
