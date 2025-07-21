@@ -36,13 +36,12 @@ public class InsurancePlanController {
      * @return InsurancePlanVO
      */
     @PutMapping
-    @ApiOperation(value = "保存InsurancePlan",notes = "添加InsurancePlan")
+    @ApiOperation(value = "保存保险方案",notes = "保存保险方案")
     @ApiImplicitParam(name = "insurancePlanVOs",value = "保险方案VO对象",required = true,dataType = "InsurancePlanVO")
-    public ResponseResult<Boolean> createInsurancePlans(@RequestBody List<InsurancePlanVO> insurancePlanVOs) {
-        Boolean flag=insurancePlanService.save(insurancePlanVOs);
+    public ResponseResult<Boolean> saveInsurancePlan(@RequestBody List<InsurancePlanVO> insurancePlanVOs) {
+        Boolean flag = insurancePlanService.save(insurancePlanVOs);
         return ResponseResultBuild.successBuild(flag);
     }
-
     /**
      * @Description 修改保险方案
      * @param insurancePlanVOs 保险产品方案VO对象列表

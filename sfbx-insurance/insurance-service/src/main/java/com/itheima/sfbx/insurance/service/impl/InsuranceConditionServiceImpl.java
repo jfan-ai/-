@@ -111,15 +111,28 @@ public class InsuranceConditionServiceImpl extends ServiceImpl<InsuranceConditio
     @Caching(evict = {@CacheEvict(value = InsuranceConditionCacheConstant.PAGE,allEntries = true),
         @CacheEvict(value = InsuranceConditionCacheConstant.LIST,allEntries = true)})
     public Boolean save(List<InsuranceConditionVO> insuranceConditionListVOs) {
+//        try {
+//            //转换InsuranceConditionVO为InsuranceCondition
+//            List<InsuranceCondition> insuranceConditions = BeanConv.toBeanList(insuranceConditionListVOs, InsuranceCondition.class);
+//            boolean flag = saveBatch(insuranceConditions);
+//            if (!flag){
+//                throw new RuntimeException("保存保险筛选项失败");
+//            }
+//            return flag;
+//        }catch (Exception e){
+//            log.error("保存保险筛选项异常：{}", ExceptionsUtil.getStackTraceAsString(e));
+//            throw new ProjectException(InsuranceConditionEnum.SAVE_FAIL);
+//        }
+
         try {
-            //转换InsuranceConditionVO为InsuranceCondition
+            //转换
             List<InsuranceCondition> insuranceConditions = BeanConv.toBeanList(insuranceConditionListVOs, InsuranceCondition.class);
             boolean flag = saveBatch(insuranceConditions);
-            if (!flag){
-                throw new RuntimeException("保存保险筛选项失败");
+            if(!flag){
+                throw new RuntimeException("保存保险系数项失败");
             }
             return flag;
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("保存保险筛选项异常：{}", ExceptionsUtil.getStackTraceAsString(e));
             throw new ProjectException(InsuranceConditionEnum.SAVE_FAIL);
         }

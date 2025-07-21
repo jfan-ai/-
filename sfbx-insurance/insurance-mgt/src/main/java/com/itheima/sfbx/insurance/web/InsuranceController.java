@@ -64,22 +64,26 @@ public class InsuranceController {
      * @return InsuranceVO
      */
     @PutMapping
-    @ApiOperation(value = "保存Insurance",notes = "添加Insurance")
+    @ApiOperation(value = "保存保险产品",notes = "保存保险产品")
     @ApiImplicitParam(name = "insuranceVO",value = "保险产品VO对象",required = true,dataType = "InsuranceVO")
-    @ApiOperationSupport(includeParameters = {"insuranceVO.publishNumber","insuranceVO.categoryNo",
-        "insuranceVO.recommendCategoryNo","insuranceVO.insuranceName","insuranceVO.goldSelection",
-        "insuranceVO.carefree","insuranceVO.showIndex","insuranceVO.labelsJson","insuranceVO.remakeJson",
-        "insuranceVO.timeStart","insuranceVO.timeStartUnit","insuranceVO.timeEnd",
-        "insuranceVO.timeEndUnit","insuranceVO.relation","insuranceVO.sortNo","insuranceVO.multiple",
-        "insuranceVO.continuousInsuranceAge","insuranceVO.checkRule","insuranceVO.companyNo",
-        "insuranceVO.insuranceState", "insuranceVO.grace","insuranceVO.graceUnit","insuranceVO.revival",
-        "insuranceVO.revivalUnit", "insuranceVO.comment","insuranceVO.remake","insuranceVO.hesitation",
-        "insuranceVO.waits", "insuranceVO.operatingRate","insuranceVO.individualAgentRate",
-        "insuranceVO.platformAgentRate"})
-    public ResponseResult<InsuranceVO> createInsurance(@RequestBody InsuranceVO insuranceVO) {
-        InsuranceVO insuranceVOResult = insuranceService.save(insuranceVO);
-        return ResponseResultBuild.successBuild(insuranceVOResult);
+    @ApiOperationSupport(includeParameters = {"insuranceVO.id","insuranceVO.publishNumber","insuranceVO.categoryNo",
+            "insuranceVO.recommendCategoryNo","insuranceVO.insuranceName","insuranceVO.goldSelection",
+            "insuranceVO.carefree","insuranceVO.showIndex","insuranceVO.labelsJson","insuranceVO.remakeJson",
+            "insuranceVO.timeStart","insuranceVO.timeStartUnit","insuranceVO.timeEnd",
+            "insuranceVO.timeEndUnit","insuranceVO.relation","insuranceVO.sortNo","insuranceVO.multiple",
+            "insuranceVO.continuousInsuranceAge","insuranceVO.checkRule","insuranceVO.companyNo","insuranceVO.insuranceState",
+            "insuranceVO.grace","insuranceVO.graceUnit","insuranceVO.revival","insuranceVO.revivalUnit",
+            "insuranceVO.comment","insuranceVO.remake","insuranceVO.hesitation","insuranceVO.waits",
+            "insuranceVO.operatingRate","insuranceVO.individualAgentRate","insuranceVO.platformAgentRate"})
+    public ResponseResult<InsuranceVO> saveInsurance(@RequestBody InsuranceVO insuranceVO) {
+        InsuranceVO insuranceVOReault = insuranceService.save(insuranceVO);
+        return ResponseResultBuild.successBuild(insuranceVOReault);
     }
+
+
+
+
+
 
     /**
      * @Description 修改保险产品

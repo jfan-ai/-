@@ -230,28 +230,32 @@ public class InsuranceServiceImpl extends ServiceImpl<InsuranceMapper, Insurance
         }
     }
 
-
-
     @Override
     @GlobalTransactional
-    @Caching(evict = {@CacheEvict(value = InsuranceCacheConstant.PAGE,allEntries = true),
-        @CacheEvict(value = InsuranceCacheConstant.LIST,allEntries = true)},
-        put={@CachePut(value =InsuranceCacheConstant.BASIC,key = "#result.id")})
+    @Caching(
+            evict = {
+                    @CacheEvict(value = InsuranceCacheConstant.PAGE,allEntries = true),
+                    @CacheEvict(value = InsuranceCacheConstant.LIST,allEntries = true),
+            },
+            put = {
+                    @CachePut(value = InsuranceCacheConstant.BASIC,key = "#result.id")
+            }
+    )
     public InsuranceVO save(InsuranceVO insuranceVO) {
         try {
-            //转换InsuranceVO为Insurance
+            //转换VO为Insurance
             Insurance insurance = BeanConv.toBean(insuranceVO, Insurance.class);
             boolean flag = save(insurance);
             if (!flag){
                 throw new RuntimeException("保存保险产品失败");
             }
-            //转换返回对象InsuranceVO
             return BeanConv.toBean(insurance, InsuranceVO.class);
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("保存保险产品异常：{}", ExceptionsUtil.getStackTraceAsString(e));
             throw new ProjectException(InsuranceEnum.SAVE_FAIL);
         }
     }
+
 
     @Override
     @GlobalTransactional

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 /**
@@ -153,58 +154,59 @@ public class InsurancePlanServiceImpl extends ServiceImpl<InsurancePlanMapper, I
 
     @Override
     @Transactional
-    @Caching(evict = {@CacheEvict(value = InsurancePlanCacheConstant.PAGE,allEntries = true),
-            @CacheEvict(value = InsurancePlanCacheConstant.LIST,allEntries = true)})
+    @Caching(
+            evict = {
+                    @CacheEvict(value = InsurancePlanCacheConstant.PAGE,allEntries = true),
+                    @CacheEvict(value = InsurancePlanCacheConstant.LIST,allEntries = true),
+            }
+    )
     public Boolean save(List<InsurancePlanVO> insurancePlanVOs) {
         try {
-            //创建方案编号
-            insurancePlanVOs.forEach(n->n.setPlanNo(identifierGenerator.nextId(insurancePlanVOs).longValue()));
-            //保存产品方案
+            //最终操作结果
+            boolean flag = false;
+            //1.批量保存保险方案
+            //给所有的保险方案设置方案编号
+            insurancePlanVOs.forEach(insurancePlanVO -> insurancePlanVO.setPlanNo(identifierGenerator.nextId(insurancePlanVO).longValue()));
+            //转化为vo实体
             List<InsurancePlan> insurancePlans = BeanConv.toBeanList(insurancePlanVOs, InsurancePlan.class);
-            boolean flag = saveBatch(insurancePlans);
-            if (!flag){
-                throw new RuntimeException("保存保险方案失败");
-            }
-            //构建方案保障项List对象
-            List<PlanSafeguardVO> planSafeguardVOs = Lists.newArrayList();
-            //构建方案给付计划List对象
-            List<PlanEarningsVO> planEarningsVOs = Lists.newArrayList();
-            //回填产品方案ID
-            insurancePlanVOs.forEach(ipv->{
-                insurancePlans.forEach(ip->{
-                    //产品保障项：回填产品方案ID
-                    if (ipv.getPlanNo().equals(ip.getPlanNo())){
-                        ipv.getPlanSafeguardVOs().forEach(y->{
-                            y.setPlanId(ip.getId());
-                        });
+            //保存
+            flag = saveBatch(insurancePlans);
+            //因为保存方案后，方案的id在insurancePlans里面；insurancePlanVOs的每个方案是没有方案id的
+            //所以可以将方案编号与保险方案id进行关联
+            //Map<方案编号,方案id>
+            Map<Long, Long> planNoAndIdMap = insurancePlans.stream().collect(Collectors.toMap(InsurancePlan::getPlanNo, InsurancePlan::getId));
+
+
+            //2.批量保存每个方案的保障项
+            //给方案保障项设置方案ID
+            insurancePlanVOs.forEach(
+                    insurancePlanVO -> {
+                        insurancePlanVO.getPlanSafeguardVOs().forEach(
+                                planSafeguardVO -> planSafeguardVO.setPlanId(planNoAndIdMap.get(insurancePlanVO.getPlanNo()))
+                        );
+                        List<PlanSafeguard> planSafeguardList = BeanConv.toBeanList(insurancePlanVO.getPlanSafeguardVOs(), PlanSafeguard.class);
+                        planSafeguardService.saveBatch(planSafeguardList);
                     }
-                    //产品给付计划：回填产品方案ID
-                    if (ipv.getPlanNo().equals(ip.getPlanNo())&&
-                        !EmptyUtil.isNullOrEmpty(ipv.getPlanEarningsVO())){
-                        ipv.getPlanEarningsVO().setPalnId(ip.getId());
+
+            );
+
+
+            //3.批量保存每个方案的给付计划
+            insurancePlanVOs.forEach(
+                    insurancePlanVO -> {
+                        if(insurancePlanVO.getPlanEarningsVO()!=null){
+                            insurancePlanVO.getPlanEarningsVO().setPalnId(insurancePlanVO.getId());
+                            planEarningsService.save(insurancePlanVO.getPlanEarningsVO());
+                        }
                     }
-                });
-                planEarningsVOs.add(ipv.getPlanEarningsVO());
-                planSafeguardVOs.addAll(ipv.getPlanSafeguardVOs());
-            });
-            //保存方案保障项
-            flag = planSafeguardService.saveBatch(BeanConv.toBeanList(planSafeguardVOs,PlanSafeguard.class));
-            if (!flag){
-                throw new RuntimeException("保存保险方案保障项失败");
-            }
-            //保存方案给付计划
-            if (!EmptyUtil.isNullOrEmpty(planEarningsVOs)){
-                flag =planEarningsService.saveBatch(BeanConv.toBeanList(planEarningsVOs,PlanEarnings.class));
-                if (!flag){
-                    throw new RuntimeException("保存保险方案给付失败");
-                }
-            }
+            );
             return flag;
-        }catch (Exception e){
-            log.error("保存保险方案异常：{}", ExceptionsUtil.getStackTraceAsString(e));
+        } catch (Exception e) {
+            log.error("批量保存方案失败：{}",ExceptionsUtil.getStackTraceAsString( e));
             throw new ProjectException(InsurancePlanEnum.SAVE_FAIL);
         }
     }
+
 
     @Override
     @Transactional
